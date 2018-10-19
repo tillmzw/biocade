@@ -1,7 +1,7 @@
-from random import random
-
 import arcade
 import pymunk
+import random
+import math
 
 
 class Molecule(arcade.Sprite):
@@ -12,16 +12,21 @@ class Molecule(arcade.Sprite):
         self.pymunk_shape = self.create_physics()
 
     def create_physics(self):
-        size = random.randint(40, 40)
         mass = random.randint(10, 10)
-        moment = pymunk.moment_for_box(mass, (size, size))
+        moment = pymunk.moment_for_box(mass, (self.width, self.height))
         body = pymunk.Body(mass, moment)
         body.position = pymunk.Vec2d(self.center_x, self.center_y)
         body.velocity = random.randint(-200, 200), random.randint(-200, 200)
-        shape = pymunk.Poly.create_box(body, (size, size))
-        shape.friction = 0
+        shape = pymunk.Poly.create_box(body, (self.width, self.height))
+        shape.friction = 1
+        shape.elasticity = 1
+        shape.arcada_sprite = self
         return shape
 
     def update(self):
         self.center_x = self.pymunk_shape.body.position.x
         self.center_y = self.pymunk_shape.body.position.y
+        self.angle = math.degrees(self.pymunk_shape.body.angle)
+
+    def on_hit(self):
+        print('hello')
