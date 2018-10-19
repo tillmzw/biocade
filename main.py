@@ -1,107 +1,137 @@
 """
-Array Backed Grid
+This simple animation example shows how to use classes to animate
+multiple objects on the screen at the same time.
 
-Show how to use a two-dimensional list/array to back the display of a
-grid on-screen.
+Because this is redraws the shapes from scratch each frame, this is SLOW
+and inefficient.
+
+Using buffered drawing commands (Vertex Buffer Objects) is a bit more complex,
+but faster.
+
+See http://arcade.academy/examples/index.html#shape-lists for some examples.
+
+Also, any Sprite class put in a SpriteList and drawn with the SpriteList will
+be drawn using Vertex Buffer Objects for better performance.
 
 If Python and Arcade are installed, this example can be run from the command line with:
-python -m arcade.examples.array_backed_grid
+python -m arcade.examples.shapes
 """
+
 import arcade
+import random
 
-# Set how many rows and columns we will have
-ROW_COUNT = 15
-COLUMN_COUNT = 15
+# Set up the constants
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 600
 
-# This sets the WIDTH and HEIGHT of each grid location
-WIDTH = 30
-HEIGHT = 30
+RECT_WIDTH = 50
+RECT_HEIGHT = 50
 
-# This sets the margin between each cell
-# and on the edges of the screen.
-MARGIN = 5
+NUMBER_OF_SHAPES = 200
 
-# Do the math to figure out oiur screen dimensions
-SCREEN_WIDTH = (WIDTH + MARGIN) * COLUMN_COUNT + MARGIN
-SCREEN_HEIGHT = (HEIGHT + MARGIN) * ROW_COUNT + MARGIN
+class Shape:
+    def __init__(self, x, y, width, height, angle, delta_x, delta_y,
+                 delta_angle, color):
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+        self.angle = angle
+        self.delta_x = delta_x
+        self.delta_y = delta_y
+        self.delta_angle = delta_angle
+        self.color = color
+
+    def move(self):
+        if self.delta_x > 0 and (self.x + self.delta_x) > SCREEN_WIDTH:
+            # reverse
+            self.delta_x *= -1
+        elif self.delta_x < 0 and (self.x - self.delta_x) < 0:
+            # reverse
+            self.delta_x *= -1
+
+        if self.delta_y > 0 and (self.y + self.delta_y) > SCREEN_HEIGHT:
+            # reverse
+            self.delta_y *= -1
+        elif self.delta_y < 0 and (self.y - self.delta_y) < 0:
+            # reverse
+            self.delta_y *= -1
+        
+        self.x += self.delta_x
+        self.y += self.delta_y
+        self.angle += self.delta_angle
+
+
+class Ellipse(Shape):
+    def draw(self):
+        arcade.draw_ellipse_filled(self.x, self.y, self.width, self.height,
+                                   self.color, self.angle)
+
+
+class Rectangle(Shape):
+    def draw(self):
+        arcade.draw_rectangle_filled(self.x, self.y, self.width, self.height,
+                                     self.color, self.angle)
 
 
 class MyGame(arcade.Window):
-    """
-    Main application class.
-    """
+    """ Main application class. """
 
-    def __init__(self, width, height):
-        """
-        Set up the application.
-        """
+    def __init__(self):
+        super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT, title="Shapes!")
+        self.shape_list = None
 
-        super().__init__(width, height)
+    def setup(self):
+        """ Set up the game and initialize the variables. """
+        self.shape_list = []
 
-        # Create a 2 dimensional array. A two dimensional
-        # array is simply a list of lists.
-        self.grid = []
-        for row in range(ROW_COUNT):
-            # Add an empty array that will hold each cell
-            # in this row
-            self.grid.append([])
-            for column in range(COLUMN_COUNT):
-                self.grid[row].append(0)  # Append a cell
+        for i in range(NUMBER_OF_SHAPES):
+            x = random.randrange(0, SCREEN_WIDTH)
+            y = random.randrange(0, SCREEN_HEIGHT)
+            width = random.randrange(10, 30)
+            height = random.randrange(10, 30)
+            angle = random.randrange(0, 360)
 
-        arcade.set_background_color(arcade.color.BLACK)
+            d_x = random.randrange(-3, 4)
+            d_y = random.randrange(-3, 4)
+            d_angle = random.randrange(-3, 4)
+
+            red = random.randrange(256)
+            green = random.randrange(256)
+            blue = random.randrange(256)
+            alpha = random.randrange(256)
+
+            shape_type = random.randrange(2)
+
+            if shape_type == 0:
+                shape = Rectangle(x, y, width, height, angle, d_x, d_y,
+                                  d_angle, (red, green, blue, alpha))
+            else:
+                shape = Ellipse(x, y, width, height, angle, d_x, d_y,
+                                d_angle, (red, green, blue, alpha))
+            self.shape_list.append(shape)
+
+    def update(self, dt):
+        """ Move everything """
+
+        for shape in self.shape_list:
+            shape.move()
 
     def on_draw(self):
         """
         Render the screen.
         """
-
-        # This command has to happen before we start drawing
         arcade.start_render()
 
-        # Draw the grid
-        for row in range(ROW_COUNT):
-            for column in range(COLUMN_COUNT):
-                # Figure out what color to draw the box
-                if self.grid[row][column] == 1:
-                    color = arcade.color.GREEN
-                else:
-                    color = arcade.color.WHITE
-
-                # Do the math to figure out where the box is
-                x = (MARGIN + WIDTH) * column + MARGIN + WIDTH // 2
-                y = (MARGIN + HEIGHT) * row + MARGIN + HEIGHT // 2
-
-                # Draw the box
-                arcade.draw_rectangle_filled(x, y, WIDTH, HEIGHT, color)
-
-    def on_mouse_press(self, x, y, button, modifiers):
-        """
-        Called when the user presses a mouse button.
-        """
-
-        # Change the x/y screen coordinates to grid coordinates
-        column = x // (WIDTH + MARGIN)
-        row = y // (HEIGHT + MARGIN)
-
-        print(f"Click coordinates: ({x}, {y}). Grid coordinates: ({row}, {column})")
-
-        # Make sure we are on-grid. It is possible to click in the upper right
-        # corner in the margin and go to a grid location that doesn't exist
-        if row < ROW_COUNT and column < COLUMN_COUNT:
-
-            # Flip the location between 1 and 0.
-            if self.grid[row][column] == 0:
-                self.grid[row][column] = 1
-            else:
-                self.grid[row][column] = 0
+        for shape in self.shape_list:
+            shape.draw()
 
 
 def main():
-
-    MyGame(SCREEN_WIDTH, SCREEN_HEIGHT)
+    window = MyGame()
+    window.setup()
     arcade.run()
 
 
 if __name__ == "__main__":
     main()
-
