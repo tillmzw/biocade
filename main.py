@@ -21,6 +21,8 @@ import arcade
 import random
 
 # Set up the constants
+from molecule.protein import Protein
+
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 
@@ -84,6 +86,8 @@ class MyGame(arcade.Window):
     def setup(self):
         """ Set up the game and initialize the variables. """
         self.shape_list = []
+        self.shape_list.append(Protein(50, 50))
+        return
 
         for i in range(NUMBER_OF_SHAPES):
             x = random.randrange(0, SCREEN_WIDTH)
@@ -110,6 +114,7 @@ class MyGame(arcade.Window):
                 shape = Ellipse(x, y, width, height, angle, d_x, d_y,
                                 d_angle, (red, green, blue, alpha))
             self.shape_list.append(shape)
+            self.shape_list.append(protein)
 
     def update(self, dt):
         """ Move everything """
