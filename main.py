@@ -56,7 +56,7 @@ class Shape:
         elif self.delta_y < 0 and (self.y - self.delta_y) < 0:
             # reverse
             self.delta_y *= -1
-        
+
         self.x += self.delta_x
         self.y += self.delta_y
         self.angle += self.delta_angle
