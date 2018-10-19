@@ -1,13 +1,7 @@
-import arcade
+
+from molecule.molecule import Molecule
 
 
-class Protein(arcade.Sprite):
+class Protein(Molecule):
     def __init__(self, x, y):
-        super().__init__("./ressources/image/Apoptosome.png")
-        self.center_x = x
-        self.center_y = y
-        self.width = 20
-        self.height = 20
-
-    def move(self):
-        self.center_y += 1
+        super().__init__("./ressources/image/Apoptosome.png", x, y, 20, 20)
