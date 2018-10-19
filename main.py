@@ -17,7 +17,9 @@ If Python and Arcade are installed, this example can be run from the command lin
 python -m arcade.examples.shapes
 """
 
+import os
 import arcade
+import pymunk
 import random
 
 # Set up the constants
@@ -27,51 +29,26 @@ SCREEN_HEIGHT = 600
 RECT_WIDTH = 50
 RECT_HEIGHT = 50
 
-NUMBER_OF_SHAPES = 200
+BASE_PATH = os.path.dirname(os.path.abspath(__file__))
 
-class Shape:
-    def __init__(self, x, y, width, height, angle, delta_x, delta_y,
-                 delta_angle, color):
-        self.x = x
-        self.y = y
-        self.width = width
-        self.height = height
-        self.angle = angle
-        self.delta_x = delta_x
-        self.delta_y = delta_y
-        self.delta_angle = delta_angle
-        self.color = color
-
-    def move(self):
-        if self.delta_x > 0 and (self.x + self.delta_x) > SCREEN_WIDTH:
-            # reverse
-            self.delta_x *= -1
-        elif self.delta_x < 0 and (self.x - self.delta_x) < 0:
-            # reverse
-            self.delta_x *= -1
-
-        if self.delta_y > 0 and (self.y + self.delta_y) > SCREEN_HEIGHT:
-            # reverse
-            self.delta_y *= -1
-        elif self.delta_y < 0 and (self.y - self.delta_y) < 0:
-            # reverse
-            self.delta_y *= -1
-        
-        self.x += self.delta_x
-        self.y += self.delta_y
-        self.angle += self.delta_angle
+class PSprite(arcade.Sprite):
+    def __init__(self, pymunk_shape, filename):
+        super().__init__(filename, center_x=pymunk_shape.body.position.x, center_y=pymunk_shape.body.position.y)
+        self.pymunk_shape = pymunk_shape
 
 
-class Ellipse(Shape):
-    def draw(self):
-        arcade.draw_ellipse_filled(self.x, self.y, self.width, self.height,
-                                   self.color, self.angle)
+class CircleSprite(PSprite):
+    def __init__(self, pymunk_shape, filename):
+        super().__init__(pymunk_shape, filename)
+        self.width = pymunk_shape.radius * 2
+        self.height = pymunk_shape.radius * 2
 
 
-class Rectangle(Shape):
-    def draw(self):
-        arcade.draw_rectangle_filled(self.x, self.y, self.width, self.height,
-                                     self.color, self.angle)
+class BoxSprite(PSprite):
+    def __init__(self, pymunk_shape, width, height):
+        super().__init__(pymunk_shape, filename=os.path.join(BASE_PATH, "resources/images/Apoptosome.png"))
+        self.width = width 
+        self.height = height 
 
 
 class MyGame(arcade.Window):
@@ -83,39 +60,34 @@ class MyGame(arcade.Window):
 
     def setup(self):
         """ Set up the game and initialize the variables. """
+
+        self.space = pymunk.Space()
+        self.space.gravity = (0.0, 0.0)
+        self.space.add_default_collision_handler()
+        self.sprite_list = arcade.SpriteList()
+
+        self.draw_time = 0
+        self.processing_time = 0
+
         self.shape_list = []
 
-        for i in range(NUMBER_OF_SHAPES):
+        for i in range(10):
+
             x = random.randrange(0, SCREEN_WIDTH)
             y = random.randrange(0, SCREEN_HEIGHT)
             width = random.randrange(10, 30)
             height = random.randrange(10, 30)
-            angle = random.randrange(0, 360)
 
-            d_x = random.randrange(-3, 4)
-            d_y = random.randrange(-3, 4)
-            d_angle = random.randrange(-3, 4)
-
-            red = random.randrange(256)
-            green = random.randrange(256)
-            blue = random.randrange(256)
-            alpha = random.randrange(256)
-
-            shape_type = random.randrange(2)
-
-            if shape_type == 0:
-                shape = Rectangle(x, y, width, height, angle, d_x, d_y,
-                                  d_angle, (red, green, blue, alpha))
-            else:
-                shape = Ellipse(x, y, width, height, angle, d_x, d_y,
-                                d_angle, (red, green, blue, alpha))
-            self.shape_list.append(shape)
-
-    def update(self, dt):
-        """ Move everything """
-
-        for shape in self.shape_list:
-            shape.move()
+            size = random.randint(10, 20)
+            mass = random.randint(10, 100)
+            moment = pymunk.moment_for_box(mass, (size, size))
+            body = pymunk.Body(mass, moment)
+            body.position = pymunk.Vec2d(x, y)
+            shape = pymunk.Poly.create_box(body, (size, size))
+            shape.friction = 1
+            self.space.add(body, shape)
+            sprite = BoxSprite(shape, width=size, height=size)
+            self.sprite_list.append(sprite)
 
     def on_draw(self):
         """
@@ -123,9 +95,7 @@ class MyGame(arcade.Window):
         """
         arcade.start_render()
 
-        for shape in self.shape_list:
-            shape.draw()
-
+        self.sprite_list.draw()
 
 def main():
     window = MyGame()
