@@ -24,6 +24,11 @@ import pymunk
 import random
 
 # Set up the constants
+from pymunk import arbiter
+
+from molecule.enzyme import Enzyme
+from molecule.protein import Protein
+
 SCREEN_WIDTH = 1200
 SCREEN_HEIGHT = 900
 
@@ -48,8 +53,8 @@ class CircleSprite(PSprite):
 class BoxSprite(PSprite):
     def __init__(self, pymunk_shape, width, height):
         super().__init__(pymunk_shape, filename=os.path.join(BASE_PATH, "ressources/image/Apoptosome.png"))
-        self.width = width 
-        self.height = height 
+        self.width = width
+        self.height = height
 
 
 class MyGame(arcade.Window):
@@ -64,11 +69,13 @@ class MyGame(arcade.Window):
 
         self.space = pymunk.Space()
         self.space.gravity = (0.0, 0.0)
-        self.space.add_default_collision_handler()
+        collision_handler = self.space.add_default_collision_handler()
         self.sprite_list = arcade.SpriteList()
         self.static_lines = []
         self.draw_time = 0
         self.processing_time = 0
+
+        collision_handler.post_solve = handle_collsition
 
         floor_height = 0
         body = pymunk.Body(body_type=pymunk.Body.STATIC)
@@ -80,29 +87,24 @@ class MyGame(arcade.Window):
                 ):
             border_shape = pymunk.Segment(body, x[0], x[1], 0.0)
             border_shape.friction = 0
+            border_shape.elasticity = 1
             self.space.add(border_shape)
             self.static_lines.append(border_shape)
 
         self.shape_list = []
 
+        e = Enzyme(100,100)
+        self.space.add(e.pymunk_shape.body, e.pymunk_shape)
+        self.sprite_list.append(e)
+
         for i in range(50):
 
             x = random.randrange(0, SCREEN_WIDTH)
             y = random.randrange(0, SCREEN_HEIGHT)
-            width = random.randrange(50, 80)
-            height = random.randrange(50, 80)
 
-            size = random.randint(40, 40)
-            mass = random.randint(10, 10)
-            moment = pymunk.moment_for_box(mass, (size, size))
-            body = pymunk.Body(mass, moment)
-            body.position = pymunk.Vec2d(x, y)
-            body.velocity = random.randint(-200, 200), random.randint(-200, 200)
-            shape = pymunk.Poly.create_box(body, (size, size))
-            shape.friction = 0
-            self.space.add(body, shape)
-            sprite = BoxSprite(shape, width=size, height=size)
-            self.sprite_list.append(sprite)
+            p = Protein(x, y)
+            self.space.add(p.pymunk_shape.body, p.pymunk_shape)
+            self.sprite_list.append(p)
 
     def on_draw(self):
         """
@@ -122,9 +124,12 @@ class MyGame(arcade.Window):
         self.space.step(1/60.0)
 
         for sprite in self.sprite_list:
-            sprite.center_x = sprite.pymunk_shape.body.position.x
-            sprite.center_y = sprite.pymunk_shape.body.position.y
-            sprite.angle = math.degrees(sprite.pymunk_shape.body.angle)
+            sprite.update()
+
+def handle_collsition(arbiter: pymunk.arbiter.Arbiter, space: pymunk.space.Space, x):
+    for shape in arbiter.shapes:
+        if hasattr(shape, 'arcada_sprite'):
+            shape.arcada_sprite.on_hit()
 
 def main():
     window = MyGame()
